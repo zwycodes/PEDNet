@@ -27,15 +27,15 @@ def model_config():
     """
     model_config
     """
-    parser = argparse.ArgumentParser()  # 创建 ArgumentParser() 对象
+    parser = argparse.ArgumentParser()
 
     # Data
     data_arg = parser.add_argument_group("Data")
-    data_arg.add_argument("--data_dir", type=str, default="./data/")  # 调用 add_argument() 方法添加参数
+    data_arg.add_argument("--data_dir", type=str, default="./data/")
     data_arg.add_argument("--data_prefix", type=str, default="demo")
-    data_arg.add_argument("--save_dir", type=str, default="./models(1)/")
+    data_arg.add_argument("--save_dir", type=str, default="./models/")
     data_arg.add_argument("--with_label", type=str2bool, default=True)
-    data_arg.add_argument("--embed_file", type=str, default="./data/glove.840B.300d.txt")
+    data_arg.add_argument("--embed_file", type=str, default=None)
 
     # Network
     net_arg = parser.add_argument_group("Network")
@@ -73,7 +73,7 @@ def model_config():
     gen_arg.add_argument("--max_dec_len", type=int, default=30)
     gen_arg.add_argument("--ignore_unk", type=str2bool, default=True)
     gen_arg.add_argument("--length_average", type=str2bool, default=True)
-    gen_arg.add_argument("--gen_file", type=str, default="./output_1query_0.5/multitask36.result")
+    gen_arg.add_argument("--gen_file", type=str, default="./output/multitask.result")
     gen_arg.add_argument("--gold_score_file", type=str, default="./gold.scores")
 
     # MISC
@@ -82,17 +82,15 @@ def model_config():
     misc_arg.add_argument("--log_steps", type=int, default=100)
     misc_arg.add_argument("--valid_steps", type=int, default=500)
     misc_arg.add_argument("--batch_size", type=int, default=128)
-    # misc_arg.add_argument("--ckpt", type=str, default="models(20-2)/state_epoch_43.model")
-    misc_arg.add_argument("--ckpt", type=str, default="models(1)/state_epoch_36.model")
     # misc_arg.add_argument("--ckpt", type=str, default="models/best.model")
-    # misc_arg.add_argument("--ckpt", type=str, default=None)
+    misc_arg.add_argument("--ckpt", type=str, default=None)
 
     misc_arg.add_argument("--check", type=str2bool, default=False)
-    misc_arg.add_argument("--test", type=str2bool, default=True)
+    misc_arg.add_argument("--test", type=str2bool, default=False)
     misc_arg.add_argument("--interact", type=str2bool, default=False)
     # misc_arg.add_argument("--interact", type=str2bool, default=True)
 
-    config = parser.parse_args()  # 使用 parse_args() 解析添加的参数
+    config = parser.parse_args()
 
     return config
 
@@ -113,26 +111,12 @@ def main():
                            min_len=config.min_len, max_len=config.max_len,
                            embed_file=config.embed_file, with_label=config.with_label,
                            share_vocab=config.share_vocab)
-    corpus.load()  # 加载准备文件prepared_data_file和prepared_vocab_file，词表建好，data中的词也变成了索引，且data = {"train": train_data,"valid": valid_data,"test": test_data}
+    corpus.load()
     if config.test and config.ckpt:
-        corpus.reload(data_type='test')  # 重新加载，加载的测试用的数据
+        corpus.reload(data_type='test')
     train_iter = corpus.create_batches(
-        config.batch_size, "train", shuffle=True, device=device)  # 批训练的迭代器
-    '''
-    以第二阶段为例
-    #Dataloader 嵌套形式为[分离batch->{分离src和target->(分离数据和长度->tensor数据值    
-    #[
-      {'src':( 数据值-->shape(batch_size, max_len), 句子长度值--> shape(batch_size) ),
-      'tgt':( 数据值-->shape(batch_size , max_len), 句子长度值-->shape(batch_size) )，
-      'cue' :( 数据值-->shape(batch_size , sen_num , max_len), 句子长度值--> shape(batch_size，sen_num) )
-      'label':( 数据值-->shape(batch_size , max_len), 句子长度值-->shape(batch_size) )，
-      'index': ( 数据值-->shape(batch_size , max_len), 句子长度值-->shape(batch_size) )，
-      },
-      {},
-      {},
-      {}，……………………………………
-     ]
-    '''
+        config.batch_size, "train", shuffle=True, device=device)
+
     valid_iter = corpus.create_batches(
         config.batch_size, "valid", shuffle=False, device=device)
     test_iter = corpus.create_batches(
@@ -140,7 +124,7 @@ def main():
     # Model definition
 
     model = TwoStagePersonaSeq2Seq(src_vocab_size=corpus.SRC.vocab_size,
-                                   tgt_vocab_size=corpus.TGT.vocab_size,  # 是建词表时算出来的TGT的词表长度
+                                   tgt_vocab_size=corpus.TGT.vocab_size,
                                    embed_size=config.embed_size, hidden_size=config.hidden_size,
                                    padding_idx=corpus.padding_idx,
                                    num_layers=config.num_layers, bidirectional=config.bidirectional,

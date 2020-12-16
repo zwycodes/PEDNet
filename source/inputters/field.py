@@ -95,7 +95,6 @@ class NumberField(Field):
                  dtype=None):
         super(NumberField, self).__init__(sequential=sequential,
                                           dtype=dtype)    
-
     def str2num(self, string):
         """
         str2num
@@ -110,9 +109,10 @@ class NumberField(Field):
         num2str
         """
         if self.sequential: 
-            return " ".join([str(x) for x in number]) 
+            return " ".join([str(x) for x in number])  
         else:
             return str(number) 
+
 
 class TextField(Field):
     """
@@ -143,6 +143,7 @@ class TextField(Field):
 
         if special_tokens is not None:
             for token in special_tokens:
+                if token not in self.specials:
                     self.specials.append(token)
 
         self.itos = []
@@ -156,7 +157,7 @@ class TextField(Field):
 
         texts = [src1,src2,src2,…, tgt1,tgt2,tgt3,…, cue1,cue1,cue3,…]
         """
-        def flatten(xs):#这里xs是[src1,src2,src2,…, tgt1,tgt2,tgt3,…, cue1,cue1,cue3,…]
+        def flatten(xs):
             """
             flatten 
             """
@@ -180,8 +181,7 @@ class TextField(Field):
             counter.update(tokens)
         
 
-        # frequencies of special tokens are not counted when building vocabulary
-        # in frequency order
+        
         for tok in self.specials:
             del counter[tok]
 
@@ -189,6 +189,7 @@ class TextField(Field):
 
         if max_size is not None:
             max_size = max_size + len(self.itos) 
+
         
         words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0]) 
         words_and_frequencies.sort(key=lambda tup: tup[1], reverse=True)
@@ -225,7 +226,7 @@ class TextField(Field):
             cover = 0
             print("Building word embeddings from '{}' ...".format(embed_file))
             with open(embed_file, "r", encoding="UTF-8") as f: 
-               
+                
                 dim = 300
                 embeds = [[0] * dim] * len(self.stoi)  
                 for line in f:
@@ -238,7 +239,7 @@ class TextField(Field):
                         if len(vs) == dim: 
                             embeds[self.stoi[w]] = vs 
                             cover += 1
-            rate = cover / len(embeds)
+            rate = cover / len(embeds) 
             print("{} words have pretrained {}-D word embeddings (coverage: {:.3f})".format( \
                     cover, dim, rate))
         return embeds 
@@ -249,23 +250,21 @@ class TextField(Field):
         """
         vocab = {"itos": self.itos,
                  "embeddings": self.embeddings} 
+        return vocab
 
     def load_vocab(self, vocab):
         """
         load_vocab
         """
         self.itos = vocab["itos"] 
-        self.stoi = {tok: i for i, tok in enumerate(self.itos)} 
+        self.stoi = {tok: i for i, tok in enumerate(self.itos)}  
         self.vocab_size = len(self.itos)
         self.embeddings = vocab["embeddings"]
 
     def str2num(self, string):
-        """
-        str2num
-        """
         
         tokens = []
-        unk_idx = self.stoi[self.unk_token] #unk_idx=1
+        unk_idx = self.stoi[self.unk_token] 
 
         if self.bos_token:
             tokens.append(self.bos_token)

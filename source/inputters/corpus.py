@@ -119,17 +119,19 @@ class Corpus(object):
         Args
         ----
         """
-        
+        #第一阶段data=[{'src':['query1','query2','query3'], 'tgt': 'response', 'cue':'persona1'},{...},...]
+        #第二阶段data=[{'src':'query', 'tgt': 'response', 'cue':['persona1','persona2',...],'label':'2','index':'14 15 17'},{...},...]
+        #第一阶段self.fields = {'src': self.SRC, 'tgt': self.TGT, 'cue': self.CUE}
+        #第二阶段self.fields = {'src': self.SRC, 'tgt': self.TGT, 'cue': self.CUE, 'label': self.LABEL, 'index': self.INDEX}
         field_data_dict = {}
         for name in data[0].keys():
-            field = self.fields.get(name)
+            field = self.fields.get(name) 
             if isinstance(field, TextField):
                 xs = [x[name] for x in data]
                 if field not in field_data_dict:
                     field_data_dict[field] = xs
                 else:
                     field_data_dict[field] += xs
-        
         vocab_dict = {}
         for name, field in self.fields.items():
             if field in field_data_dict:
@@ -145,8 +147,12 @@ class Corpus(object):
         """
         Args
         ----
+        第一阶段self.fields = {'src': self.SRC, 'tgt': self.TGT, 'cue': self.CUE}
+        第二阶段self.fields = {'src': self.SRC, 'tgt': self.TGT, 'cue': self.CUE, 'label': self.LABEL, 'index': self.INDEX}
         """
         
+        #第一阶段data=[{'src':['query1','query2','query3'], 'tgt': 'response', 'cue':'persona'},{...},...]
+        #第二阶段data=[{'src':'query', 'tgt': 'response', 'cue':['persona1','persona2',...],'label':'2','index':'14 15 17'},{...},...]
         examples = []
         for raw_data in tqdm(data):
             example = {}
@@ -156,7 +162,7 @@ class Corpus(object):
         if self.sort_fn is not None:
             print("Sorting examples ...")
             examples = self.sort_fn(examples)
-        return examples  
+        return examples   
 
     def build(self):
         """
@@ -171,7 +177,7 @@ class Corpus(object):
         test_file2 = os.path.join(self.data_dir, self.data_prefix + ".test2")
 
         print("Reading data ...")
-        
+       
         train_raw1, train_raw2 = self.read_data_multitask(train_file1, train_file2, data_type="train")
         valid_raw1, valid_raw2 = self.read_data_multitask(valid_file1,valid_file2, data_type="valid")
         test_raw1, test_raw2= self.read_data_multitask(test_file1,test_file2, data_type="test")#
@@ -215,7 +221,7 @@ class Corpus(object):
         create_batches
         """
         try:
-            data = self.data[data_type] #data=Dataset(data['train'])/Dataset(data['valid'])/Dataset(data['test'])
+            data = self.data[data_type] 
             data_loader = data.create_batches(batch_size, shuffle, device) 
             return data_loader
         except KeyError:
@@ -376,25 +382,12 @@ class PersonaCorpus(Corpus):
                     index = key_index
 
                     data.append({'src': query, 'tgt': response, 'cue': filter_personas, 'label': persona_label, 'index': index})
-                    '''
-                    第二阶段
-                    data=[{'src': "hi , how are you doing ? i am getting ready to do some cheetah chasing to stay in shape.",
-                            'tgt': 'you must be very fast . hunting is one of my favorite hobbies .', 
-                            'cue': ['i like to remodel homes', 'i like to go hunting', 'i like to shoot a bow'],
-                            'label':'2', 
-                            'index':'14 15 17'}
-                            {},
-                            {},
-                            ...]
-                    '''
-                
                 else:
                     queries, response, persona = line.strip().split('\t')[:3]
                     src=queries.split('**')
                     # filter_persona = ' '.join(persona.split()[:self.max_len])
                     filter_persona = persona
                     data.append({'src': src, 'tgt': response, 'cue': filter_persona})
-                    
 
         filtered_num = len(data)
         if self.filter_pred is not None:
@@ -426,7 +419,6 @@ class PersonaCorpus(Corpus):
         filtered_num -= len(data2)
         print(
             "Read {} {} examples ({} filtered)".format(len(data2), data_type.upper()+'task2', filtered_num))
-        
 
         with open(data_file1, "r", encoding="utf-8") as f:
             for line in f:
