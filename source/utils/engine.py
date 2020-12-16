@@ -141,16 +141,7 @@ class Trainer(object):
         self.optimizer = optimizer
 
         self.train_iter = train_iter
-        '''
-        #Dataloader 嵌套形式为[分离batch->{分离src和target和cue->(分离数据和长度->tensor数据值    
-        #[
-          {'src':( 数据值-->shape(batch_size*max_len), 数据长度值--> shape(batch_size) ),
-          'tgt':( 数据值-->shape(batch_size*max_len), 数据长度值-->shape(batch_size) )，
-          'cue' :( 数据值-->shape(batch_size*sen_num*max_len), 数据长度值--> shape(batch_size*sen_num) )
-          },{},{},{}……………………………………
-         ]
-
-        '''
+        
         self.valid_iter = valid_iter
         self.logger = logger
 
@@ -211,21 +202,13 @@ class Trainer(object):
         num_batches = len(self.train_iter)
         self.logger.info(self.train_start_message)
         p = np.array([0.5,0.5])
-        for batch_id, inputs in enumerate(self.train_iter, 1):  # 1表示batch_id的起始值为1
+        for batch_id, inputs in enumerate(self.train_iter, 1):  
             task_id = np.random.choice([0,1], replace = False, p = p.ravel())
             # print(index)
-            self.model.train()  # trian()是nn.Model内置的一个方法
+            self.model.train()  
             start_time = time.time()
             # Do a training iteration
-            '''
-             inputs包含有句子长度（tensor已经被填充）具体见seq2seq.py文件
-             #inputs: 嵌套形式为{分离src和target和cue->(分离数据和长度->tensor数据值    
-              #{'src': ( 数据值-->shape(batch_size , sen_num , max_len), 句子长度值--> shape(batch_size，sen_num) ),
-             'tgt': ( 数据值-->shape(batch_size , max_len), 句子长度值-->shape(batch_size) )，
-             'cue': ( 数据值-->shape(batch_size, max_len), 句子长度值--> shape(batch_size) )
-              },
-            '''
-            # 注意这里的model.iterate方法，knowledge_seq2seq.py中KnowledgeSeq2Seq类中各个方法的inputs接收的就是：这里的参数inputs
+            
             metrics, _ = self.model.iterate(inputs,
                                             optimizer=self.optimizer,
                                             grad_clip=self.grad_clip,

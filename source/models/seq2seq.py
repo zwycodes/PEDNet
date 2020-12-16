@@ -135,8 +135,8 @@ class Seq2Seq(BaseModel):
         forward
         """
         outputs, dec_init_state = self.encode(enc_inputs, hidden)
-        log_probs, _ = self.decoder(dec_inputs, dec_init_state)#log_probs维度(batchsize,max_len,词表长度)
-        outputs.add(logits=log_probs)#outputs是Pack类，调用add方法将参数以字典的形式存放在outputs中，具体见misc.py
+        log_probs, _ = self.decoder(dec_inputs, dec_init_state)
+        outputs.add(logits=log_probs)
         return outputs
 
     def collect_metrics(self, outputs, target):
@@ -162,23 +162,7 @@ class Seq2Seq(BaseModel):
         """
         iterate
         """
-        '''
-            inputs包含有句子长度（tensor已经被填充）
-            #inputs: 嵌套形式为{分离src和target和cue->(分离数据和长度->tensor数据值    
-            #[{'src':( 数据值-->shape(batch_size, max_len), 句子长度值--> shape(batch_size) ),
-              'tgt':( 数据值-->shape(batch_size , max_len), 句子长度值-->shape(batch_size) )，
-              'cue' :( 数据值-->shape(batch_size , sen_num , max_len), 句子长度值--> shape(batch_size，sen_num) )
-              },{},{},{}……………………………………]
-
-        例如，当batch_size=4,max_len=6,cue的句子长度sen_num=3时：
-        inputs=[{'src':( [[1,2,3,4,5,6],[3,2,4,5,0,0],[2,2,2,1,1,0],[3,3,3,2,0,0]],  [6,4,5,4] ),
-                'tgt':
-                'cue':( [ [[1,2,3,4,5,6],[3,2,4,5,0,0],[2,2,2,1,1,0]],
-                          [[2,2,2,4,5,0],[3,3,3,5,5,7],[2,2,3,1,1,0]],
-                          [[1,2,3,4,5,6],[3,2,4,5,0,0],[2,2,2,1,1,0]],
-                          [[1,2,3,4,5,6],[3,2,4,5,0,0],[2,2,2,1,1,0]] ], [[6,4,5],[5,6,5],[6,4,5],[6,4,5]] )
-              ]     
-        '''
+        
 
         enc_inputs = inputs
         dec_inputs = inputs.tgt[0][:, :-1], inputs.tgt[1] - 1
@@ -198,5 +182,5 @@ class Seq2Seq(BaseModel):
             if grad_clip is not None and grad_clip > 0:
                 clip_grad_norm_(parameters=self.parameters(),
                                 max_norm=grad_clip)
-            optimizer.step()#参数更新
+            optimizer.step()
         return metrics,scores

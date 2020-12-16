@@ -23,10 +23,10 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(self, data):
         self.data = data
 
-    def __len__(self):#定义当被len()函数调用时的行为（返回容器中元素的个数）
+    def __len__(self):
         return len(self.data[1])
 
-    def __getitem__(self, idx):#定义获取容器中指定元素的行为，相当于self[key]，即允许类对象可以有索引操作
+    def __getitem__(self, idx):
         return (self.data[0][idx],self.data[1][idx])
 
     @staticmethod

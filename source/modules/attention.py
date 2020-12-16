@@ -74,7 +74,7 @@ class Attention(nn.Module):
         mask: Tensor(batch_size, memory_length)
         """
         if self.mode == "dot":
-            assert query.size(-1) == memory.size(-1) #特征维度一样
+            assert query.size(-1) == memory.size(-1) 
             # (batch_size, query_length, memory_length)
             attn = torch.bmm(query, memory.transpose(1, 2))
         elif self.mode == "general":

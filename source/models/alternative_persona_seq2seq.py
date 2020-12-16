@@ -39,7 +39,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
         super(TwoStagePersonaSeq2Seq, self).__init__()
 
         self.src_vocab_size = src_vocab_size
-        self.tgt_vocab_size = tgt_vocab_size  # tgt_vocab_size是建词表时算出来的TGT的词表长度
+        self.tgt_vocab_size = tgt_vocab_size  
         self.embed_size = embed_size
         self.hidden_size = hidden_size
         self.padding_idx = padding_idx
@@ -69,7 +69,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
         if self.with_bridge:
             self.bridge = nn.Sequential(nn.Linear(self.hidden_size, self.hidden_size), nn.Tanh())
 
-        if self.tie_embedding:  # input和output（解码时的yt-1)用一样的embedding，也就是共享embedding
+        if self.tie_embedding: 
             assert self.src_vocab_size == self.tgt_vocab_size
             dec_embedder = enc_embedder
             persona_embedder = enc_embedder
@@ -135,10 +135,10 @@ class TwoStagePersonaSeq2Seq(BaseModel):
           'index': ( 数据值-->shape(batch_size , max_len), 句子长度值-->shape(batch_size) )
           }
 	    '''
-        outputs = Pack()  # 来自misc.py文件，Pack是一个类，包括 sequence_mask、list2tensor等方法
+        outputs = Pack()  
         ''' 第二阶段'''
         if self.task_id==1:
-            '''query的语义表示'''
+    
             enc_inputs = inputs.src[0][:, 1:-1], inputs.src[1] - 2
             lengths = inputs.src[1] - 2  # (batch_size)
             enc_outputs, enc_hidden, enc_embedding = self.encoder(enc_inputs, hidden)
@@ -148,7 +148,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
             if self.with_bridge:
                 enc_hidden = self.bridge(enc_hidden)
 
-            # 计算persona aware representation，也就是z变量(key words的隐层），用于给personas打权重
+           
             # tem_bth,tem_len,tem_hi_size =enc_outputs.size()# batch_size, max_len-2, 2*rnn_hidden_size)
             key_index, len_key_index = inputs.index[0], inputs.index[1]  # key_index(batch_size , idx_max_len)
             max_len = key_index.size(1)
@@ -169,7 +169,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
             # cue_enc_outputs:(batch_size*sent_num , max_len-2, 2*rnn_hidden_size)
             # cue_enc_hidden:(层数 , batch_size*sent_num, 2 * rnn_hidden_size)
             cue_outputs = cue_enc_hidden[-1].view(batch_size, sent_num,
-                                                  -1)  # 一次把所有persona过一遍encoder之后，拿每一句persona的hidden与persona_aware做attention
+                                                  -1)  
             cue_enc_outputs = cue_enc_outputs.view(batch_size, sent_num, cue_enc_outputs.size(1),
                                                    -1)  # cue_enc_outputs:(batch_size, sent_num , max_len-2, 2*rnn_hidden_size)
             cue_len = cue_len.view(batch_size, sent_num)
@@ -243,7 +243,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
 
             # src_enc_outputs:(batch_size*sent_num , max_len-2, 2*rnn_hidden_size)
             # enc_hidden:(层数 , batch_size*sent_num, 2 * rnn_hidden_size)
-            src_outputs = torch.mean(enc_hidden.view(self.num_layers, batch_size, sent_num, -1), 2)  # 池化得到S0
+            src_outputs = torch.mean(enc_hidden.view(self.num_layers, batch_size, sent_num, -1), 2)  # 池化
             # src_outputs:(层数，batch_size,  2 * rnn_hidden_size)
 
             # persona:((batch_size，max_len-2), (batch_size))**persona的Tensor去头去尾
@@ -254,7 +254,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
             # cue_enc_hidden:(num_layer , batch_size , 2*rnn_hidden_size)
 
             dec_init_state = self.decoder.initialize_state(
-                hidden=src_outputs,  # src_outputs:(层数，batch_size,  2 * rnn_hidden_size) 已经池化，作为解码的输入
+                hidden=src_outputs,  
                 attn_memory=src_enc_outputs.view(batch_size, sent_num, sent_len - 2, -1) if self.attn_mode else None,
                 # (batch_size, sent_num , max_len-2, 2*rnn_hidden_size)
                 memory_lengths=src_lengths if self.attn_mode else None,  # (batch_size，sent_num)
@@ -262,7 +262,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
                 cue_lengths=cue_lengths,
                 task_id = self.task_id  # (batch_size)
             )
-        return outputs, dec_init_state  # 这里dec_init_state是一个batch_id的编码结果，也就是一次迭代的编码结果
+        return outputs, dec_init_state  
 
     def decode(self, input, state):
 
@@ -279,7 +279,7 @@ class TwoStagePersonaSeq2Seq(BaseModel):
         outputs, dec_init_state = self.encode(
             enc_inputs, hidden, is_training=is_training)
         log_probs, _ = self.decoder(dec_inputs,
-                                    dec_init_state)  # dec_inputs = inputs.tgt[0][:, :-1], inputs.tgt[1] - 1  dec_inputs，解码时的输入没有eos符号
+                                    dec_init_state)  
         outputs.add(logits=log_probs)
         return outputs
 
@@ -326,23 +326,17 @@ class TwoStagePersonaSeq2Seq(BaseModel):
         """
         iterate
         """
-        '''
-	    #inputs: 嵌套形式为{分离src和target和cue->(分离数据和长度->tensor数据值    
-        #{'src': ( 数据值-->shape(batch_size , sen_num , max_len), 句子长度值--> shape(batch_size，sen_num) ),
-          'tgt': ( 数据值-->shape(batch_size , max_len), 句子长度值-->shape(batch_size) )，
-          'cue': ( 数据值-->shape(batch_size, max_len), 句子长度值--> shape(batch_size) )
-          },
-	    '''
+        
         if is_training:
             self.task_id = task_id
             enc_inputs = inputs[task_id]
-            dec_inputs = inputs[task_id].tgt[0][:, :-1], inputs[task_id].tgt[1] - 1  # dec_inputs，解码时的输入没有eos符号
+            dec_inputs = inputs[task_id].tgt[0][:, :-1], inputs[task_id].tgt[1] - 1  
             target = inputs[task_id].tgt[0][:, 1:] 
         else:
             self.task_id = 1
             enc_inputs = inputs[1]
-            dec_inputs = inputs[1].tgt[0][:, :-1], inputs[1].tgt[1] - 1  # dec_inputs，解码时的输入没有eos符号
-            target = inputs[1].tgt[0][:, 1:]  # target计算loss时没有bos符号
+            dec_inputs = inputs[1].tgt[0][:, :-1], inputs[1].tgt[1] - 1 
+            target = inputs[1].tgt[0][:, 1:]  
 
         outputs = self.forward(enc_inputs, dec_inputs, is_training=is_training)
         metrics, scores = self.collect_metrics(outputs, target, epoch=epoch)

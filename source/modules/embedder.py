@@ -21,9 +21,8 @@ class Embedder(nn.Embedding):
         """
         load_embeddings
         """
-        #assert（断言）用于判断一个表达式，在表达式条件为 false 的时候触发异常
-        #num_embeddings是实例化embedder时的参数，可在seq2seq模型的结构中看到，num_embeddings是词表的长度
-        assert len(embeds) == self.num_embeddings#[[* dim],[* dim],[* dim],[* dim]…………………………],shape:（len(vocab)*300), embed_file中没有的单词embedding会设为0。
+       
+        assert len(embeds) == self.num_embeddings
 
 
         embeds = torch.tensor(embeds) 
